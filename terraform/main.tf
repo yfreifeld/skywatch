@@ -146,7 +146,7 @@ resource "aws_instance" "master" {
 }
 
 # ---------------------------------------------------------------------------
-# Worker Node (App pods + RabbitMQ + Grafana)
+# Worker Node 1 (ArgoCD)
 # ---------------------------------------------------------------------------
 resource "aws_instance" "worker" {
   ami                         = data.aws_ami.ubuntu.id
@@ -172,15 +172,43 @@ resource "aws_instance" "worker" {
 }
 
 # ---------------------------------------------------------------------------
+# Worker Node 2 (App pods + RabbitMQ + Grafana)
+# ---------------------------------------------------------------------------
+resource "aws_instance" "worker2" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type
+  key_name                    = var.key_name
+  subnet_id                   = tolist(data.aws_subnets.default.ids)[0]
+  vpc_security_group_ids      = [aws_security_group.skywatch.id]
+  associate_public_ip_address = true
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = var.worker_volume_size
+  }
+
+  user_data = <<-EOF
+    #!/bin/bash
+    hostnamectl set-hostname skywatch-worker2
+    apt-get update -y
+    apt-get install -y curl
+  EOF
+
+  tags = { Name = "${var.project_name}-worker2", Role = "worker", Project = var.project_name }
+}
+
+# ---------------------------------------------------------------------------
 # Generate Ansible inventory from instance IPs
 # ---------------------------------------------------------------------------
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/inventory.tpl", {
-    master_ip         = aws_instance.master.public_ip
-    worker_ip         = aws_instance.worker.public_ip
-    master_private_ip = aws_instance.master.private_ip
-    worker_private_ip = aws_instance.worker.private_ip
-    key_path          = var.ssh_private_key_path
+    master_ip          = aws_instance.master.public_ip
+    worker_ip          = aws_instance.worker.public_ip
+    worker2_ip         = aws_instance.worker2.public_ip
+    master_private_ip  = aws_instance.master.private_ip
+    worker_private_ip  = aws_instance.worker.private_ip
+    worker2_private_ip = aws_instance.worker2.private_ip
+    key_path           = var.ssh_private_key_path
   })
   filename        = "${path.module}/../ansible/inventory.ini"
   file_permission = "0644"

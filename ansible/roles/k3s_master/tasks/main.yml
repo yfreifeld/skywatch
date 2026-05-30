@@ -1,8 +1,14 @@
 ---
+- name: Check if K3s server is already active
+  ansible.builtin.shell: systemctl is-active k3s || true
+  register: k3s_server_active
+  changed_when: false
+
 - name: Remove any previous K3s server install
   ansible.builtin.shell: /usr/local/bin/k3s-uninstall.sh
   args:
     removes: /usr/local/bin/k3s-uninstall.sh
+  when: k3s_server_active.stdout != 'active'
   ignore_errors: true
 
 - name: Install K3s server (pinned to v1.29 — lightweight for t3.micro)

@@ -1,8 +1,14 @@
 ---
+- name: Check if K3s agent service is already active
+  ansible.builtin.shell: systemctl is-active k3s-agent || true
+  register: k3s_agent_active
+  changed_when: false
+
 - name: Remove any previous failed K3s agent install
   ansible.builtin.shell: /usr/local/bin/k3s-agent-uninstall.sh
   args:
     removes: /usr/local/bin/k3s-agent-uninstall.sh
+  when: k3s_agent_active.stdout != 'active'
   ignore_errors: true
 
 - name: Join worker to K3s cluster (same version as master)
