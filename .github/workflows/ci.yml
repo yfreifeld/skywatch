@@ -85,17 +85,21 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Update Helm values.yaml with the new image tag so ArgoCD picks it up
+      - name: Install yq (mikefarah)
+        if: github.event_name == 'push'
+        run: |
+          wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
       - name: Update image tags in Helm values
         if: github.event_name == 'push'
         run: |
           TAG="${{ steps.meta.outputs.TAG }}"
           OWNER="${{ github.repository_owner }}"
-          sed -i "s|repository: ghcr.io/.*/skywatch-frontend|repository: ghcr.io/${OWNER}/skywatch-frontend|" helm/skywatch/values.yaml
-          sed -i "s|repository: ghcr.io/.*/skywatch-worker|repository: ghcr.io/${OWNER}/skywatch-worker|" helm/skywatch/values.yaml
-          sed -i "s|tag: .*  # frontend|tag: ${TAG}  # frontend|" helm/skywatch/values.yaml || true
-          # Use yq for reliable YAML editing
-          pip install yq --quiet
+          yq -i ".frontend.image.repository = \"ghcr.io/${OWNER}/skywatch-frontend\"" helm/skywatch/values.yaml
           yq -i ".frontend.image.tag = \"${TAG}\"" helm/skywatch/values.yaml
+          yq -i ".worker.image.repository = \"ghcr.io/${OWNER}/skywatch-worker\"" helm/skywatch/values.yaml
           yq -i ".worker.image.tag = \"${TAG}\"" helm/skywatch/values.yaml
 
       - name: Commit updated Helm values

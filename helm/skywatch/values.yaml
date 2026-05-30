@@ -2,7 +2,7 @@
 # CI updates these tags on every push to main.
 frontend:
   image:
-    repository: ghcr.io/GITHUB_USERNAME/skywatch-frontend
+    repository: ghcr.io/yfreifeld/skywatch-frontend
     tag: latest
     pullPolicy: Always
   replicaCount: 1
@@ -20,7 +20,7 @@ frontend:
 
 worker:
   image:
-    repository: ghcr.io/GITHUB_USERNAME/skywatch-worker
+    repository: ghcr.io/yfreifeld/skywatch-worker
     tag: latest
     pullPolicy: Always
   replicaCount: 2
