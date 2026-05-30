@@ -3,7 +3,7 @@
 frontend:
   image:
     repository: ghcr.io/yfreifeld/skywatch-frontend
-    tag: latest
+    tag: caf554b
     pullPolicy: Always
   replicaCount: 1
   port: 5000
@@ -17,11 +17,10 @@ frontend:
     limits:
       cpu: 300m
       memory: 256Mi
-
 worker:
   image:
     repository: ghcr.io/yfreifeld/skywatch-worker
-    tag: latest
+    tag: caf554b
     pullPolicy: Always
   replicaCount: 2
   resources:
@@ -31,7 +30,6 @@ worker:
     limits:
       cpu: 300m
       memory: 256Mi
-
 # ── RabbitMQ (bitnami sub-chart) ─────────────────────────────────────────────
 rabbitmq:
   auth:
@@ -56,8 +54,7 @@ rabbitmq:
     limits:
       cpu: 500m
       memory: 512Mi
-
 # ── Shared environment ───────────────────────────────────────────────────────
 env:
-  RABBITMQ_HOST: "skywatch-rabbitmq"   # matches the service name created by the sub-chart
+  RABBITMQ_HOST: "skywatch-rabbitmq" # matches the service name created by the sub-chart
   REQUEST_TIMEOUT: "15"
