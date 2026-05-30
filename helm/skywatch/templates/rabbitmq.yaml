@@ -34,15 +34,16 @@ spec:
           resources:
             {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
           readinessProbe:
-            exec:
-              command: ["rabbitmq-diagnostics", "ping"]
+            tcpSocket:
+              port: amqp
             initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:
-            exec:
-              command: ["rabbitmq-diagnostics", "ping"]
+            tcpSocket:
+              port: amqp
             initialDelaySeconds: 60
-            periodSeconds: 15
+            periodSeconds: 20
+            failureThreshold: 5
           volumeMounts:
             - name: data
               mountPath: /var/lib/rabbitmq
