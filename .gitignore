@@ -18,9 +18,9 @@ __pycache__/
 .venv/
 venv/
 
-# Helm
-helm/skywatch/charts/
-helm/skywatch/Chart.lock
+# Helm — charts/ and Chart.lock ARE committed so ArgoCD doesn't need external repo access
+# helm/skywatch/charts/
+# helm/skywatch/Chart.lock
 
 # OS
 .DS_Store
