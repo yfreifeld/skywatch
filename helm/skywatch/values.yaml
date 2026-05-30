@@ -3,7 +3,7 @@
 frontend:
   image:
     repository: ghcr.io/yfreifeld/skywatch-frontend
-    tag: 494f906
+    tag: 57ffdb1
     pullPolicy: Always
   replicaCount: 1
   port: 5000
@@ -20,7 +20,7 @@ frontend:
 worker:
   image:
     repository: ghcr.io/yfreifeld/skywatch-worker
-    tag: 494f906
+    tag: 57ffdb1
     pullPolicy: Always
   replicaCount: 2
   resources:
