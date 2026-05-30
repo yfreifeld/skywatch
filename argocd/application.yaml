@@ -22,6 +22,13 @@ spec:
     server: https://kubernetes.default.svc
     namespace: skywatch
 
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: skywatch-rabbitmq
+      jsonPointers:
+        - /spec/volumeClaimTemplates   # API server adds defaults not in manifest
+
   syncPolicy:
     automated:
       prune: true      # Remove resources deleted from Git
