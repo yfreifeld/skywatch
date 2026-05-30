@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkyWatch &mdash; Weather Pipeline</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #eee;
+    }
+    .container { text-align: center; padding: 2rem; max-width: 640px; width: 100%; }
+    h1 { font-size: 3.5rem; color: #e94560; letter-spacing: -1px; }
+    .subtitle { color: #8892b0; margin: 0.5rem 0 2.5rem; font-size: 0.95rem; }
+    form { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+    input[type="text"] {
+      padding: 0.8rem 1.5rem;
+      border-radius: 50px;
+      border: 2px solid #30363d;
+      background: rgba(255,255,255,0.06);
+      color: #eee;
+      font-size: 1rem;
+      width: 280px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: #e94560; }
+    button {
+      padding: 0.8rem 2rem;
+      border-radius: 50px;
+      border: none;
+      background: #e94560;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover { background: #c73652; }
+    button:active { transform: scale(0.97); }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(233,69,96,0.25);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    .city-name { font-size: 2.2rem; font-weight: 700; }
+    .country { color: #8892b0; margin: 0.25rem 0 1.8rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; }
+    .stats { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1rem; }
+    .stat { min-width: 100px; }
+    .stat-value { font-size: 2.4rem; font-weight: 700; color: #e94560; line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: #8892b0; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0.3rem; }
+    .condition { margin-top: 1.5rem; font-size: 1.1rem; color: #cdd6f4; }
+    .time { margin-top: 0.5rem; font-size: 0.8rem; color: #555; }
+
+    .error {
+      background: rgba(231,76,60,0.1);
+      border: 1px solid rgba(231,76,60,0.35);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      color: #e74c3c;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .arch {
+      margin-top: 3rem;
+      font-size: 0.7rem;
+      color: #30363d;
+      letter-spacing: 1px;
+    }
+    .arch span { color: #e94560; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>&#9729; SkyWatch</h1>
+    <p class="subtitle">Distributed Weather Pipeline &mdash; RabbitMQ &bull; K3s &bull; Open-Meteo</p>
+
+    <form method="POST">
+      <input type="text" name="city" placeholder="Enter a city name..." value="{{ city or '' }}" autofocus autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+
+    {% if error %}
+    <div class="error">&#9888;&nbsp; {{ error }}</div>
+    {% elif weather %}
+    <div class="card">
+      <div class="city-name">{{ weather.city }}</div>
+      <div class="country">{{ weather.country }}</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">{{ weather.temperature }}&deg;</div>
+          <div class="stat-label">Celsius</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">{{ weather.windspeed }}</div>
+          <div class="stat-label">Wind km/h</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">{{ weather.weathercode }}</div>
+          <div class="stat-label">WMO Code</div>
+        </div>
+      </div>
+      <div class="condition">{{ weather.condition }}</div>
+      <div class="time">{{ weather.time }}</div>
+    </div>
+    {% endif %}
+
+    <div class="arch">
+      Frontend &rarr; <span>RabbitMQ</span> &rarr; Worker &rarr; <span>Open-Meteo API</span>
+    </div>
+  </div>
+</body>
+</html>

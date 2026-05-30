@@ -1,0 +1,27 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Ansible generated files
+ansible/inventory.ini
+
+# Kubernetes
+kubeconfig
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Helm
+helm/skywatch/charts/
+helm/skywatch/Chart.lock
+
+# OS
+.DS_Store
+*.swp

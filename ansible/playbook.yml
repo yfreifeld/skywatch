@@ -1,0 +1,49 @@
+---
+- name: Wait for SSH on all nodes
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to be available
+      ansible.builtin.wait_for_connection:
+        timeout: 180
+        delay: 10
+
+- name: Install K3s on master node
+  hosts: master
+  become: true
+  roles:
+    - k3s_master
+
+- name: Join worker node to the cluster
+  hosts: worker
+  become: true
+  vars:
+    # Use the private IP for K3s communication — public IP routes via IGW and bypasses SG self-rule
+    k3s_master_ip: "{{ hostvars[groups['master'][0]]['master_private_ip'] | default(groups['master'][0]) }}"
+    k3s_token: "{{ hostvars[groups['master'][0]]['k3s_token'] }}"
+  roles:
+    - k3s_worker
+
+- name: Fetch kubeconfig for local kubectl access
+  hosts: master
+  become: true
+  tasks:
+    - name: Read kubeconfig
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_raw
+
+    - name: Write local kubeconfig (replaces server IP placeholder)
+      ansible.builtin.copy:
+        content: "{{ kubeconfig_raw.content | b64decode | replace('127.0.0.1', inventory_hostname) }}"
+        dest: "{{ playbook_dir }}/../kubeconfig"
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+
+    - name: Print access info
+      ansible.builtin.debug:
+        msg: |
+          Cluster is ready!
+          Export: export KUBECONFIG={{ playbook_dir }}/../kubeconfig
+          Nodes:  kubectl get nodes

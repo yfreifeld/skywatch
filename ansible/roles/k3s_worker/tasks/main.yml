@@ -1,0 +1,26 @@
+---
+- name: Remove any previous failed K3s agent install
+  ansible.builtin.shell: /usr/local/bin/k3s-agent-uninstall.sh
+  args:
+    removes: /usr/local/bin/k3s-agent-uninstall.sh
+  ignore_errors: true
+
+- name: Join worker to K3s cluster (same version as master)
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_VERSION=v1.29.5+k3s1 \
+      K3S_URL=https://{{ k3s_master_ip }}:6443 \
+      K3S_TOKEN={{ k3s_token }} \
+      sh -s - agent
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for K3s agent service
+  ansible.builtin.systemd:
+    name: k3s-agent
+    state: started
+    enabled: true
+
+- name: Confirm worker registered
+  ansible.builtin.debug:
+    msg: "K3s agent installed on {{ inventory_hostname }}. Check 'kubectl get nodes' on master."

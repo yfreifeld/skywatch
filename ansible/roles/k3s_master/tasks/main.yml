@@ -1,0 +1,60 @@
+---
+- name: Remove any previous K3s server install
+  ansible.builtin.shell: /usr/local/bin/k3s-uninstall.sh
+  args:
+    removes: /usr/local/bin/k3s-uninstall.sh
+  ignore_errors: true
+
+- name: Install K3s server (pinned to v1.29 — lightweight for t3.micro)
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_VERSION=v1.29.5+k3s1 \
+      sh -s - server \
+        --disable traefik \
+        --write-kubeconfig-mode 644 \
+        --tls-san {{ inventory_hostname }}
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for K3s API to accept connections
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 6443
+    timeout: 120
+    delay: 10
+
+- name: Wait for at least one node Ready
+  ansible.builtin.shell: |
+    k3s kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready"
+  register: k3s_ready
+  until: k3s_ready.stdout | int >= 1
+  retries: 30
+  delay: 10
+
+- name: Read node-join token
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: token_raw
+
+- name: Set k3s_token fact (shared with worker play)
+  ansible.builtin.set_fact:
+    k3s_token: "{{ token_raw.content | b64decode | trim }}"
+
+- name: Install kubectl alias for ubuntu user
+  ansible.builtin.copy:
+    dest: /home/ubuntu/.bashrc_k3s
+    content: |
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+      alias k='k3s kubectl'
+    mode: "0644"
+    owner: ubuntu
+
+- name: Source k3s bashrc
+  ansible.builtin.lineinfile:
+    path: /home/ubuntu/.bashrc
+    line: "source ~/.bashrc_k3s"
+    create: true
+
+- name: Print master node info
+  ansible.builtin.debug:
+    msg: "K3s master installed. Token acquired."

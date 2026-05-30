@@ -1,0 +1,45 @@
+# kube-prometheus-stack Helm values
+# Install: helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+#            -n monitoring --create-namespace -f monitoring/prometheus-values.yaml
+
+grafana:
+  enabled: true
+  adminPassword: "skywatch-grafana"
+  service:
+    type: NodePort
+    nodePort: 30030
+  persistence:
+    enabled: true
+    size: 1Gi
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    # Scrape all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+alertmanager:
+  enabled: false   # not needed for course project
+
+# node-exporter gives us CPU/memory per node
+nodeExporter:
+  enabled: true
+
+# kube-state-metrics gives us pod/deployment metrics
+kubeStateMetrics:
+  enabled: true

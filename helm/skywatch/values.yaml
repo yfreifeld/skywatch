@@ -1,0 +1,63 @@
+# ── Image settings ──────────────────────────────────────────────────────────
+# CI updates these tags on every push to main.
+frontend:
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/skywatch-frontend
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 1
+  port: 5000
+  service:
+    type: NodePort
+    nodePort: 30080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+worker:
+  image:
+    repository: ghcr.io/GITHUB_USERNAME/skywatch-worker
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+# ── RabbitMQ (bitnami sub-chart) ─────────────────────────────────────────────
+rabbitmq:
+  auth:
+    username: user
+    password: skywatch-secret
+    erlangCookie: supersecretcookie
+  persistence:
+    enabled: true
+    size: 1Gi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+  service:
+    type: ClusterIP
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Shared environment ───────────────────────────────────────────────────────
+env:
+  RABBITMQ_HOST: "skywatch-rabbitmq"   # matches the service name created by the sub-chart
+  REQUEST_TIMEOUT: "15"

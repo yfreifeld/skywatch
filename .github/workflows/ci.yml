@@ -1,0 +1,108 @@
+name: CI — Build & Push
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/skywatch-frontend
+  WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/skywatch-worker
+
+jobs:
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Lint frontend
+        run: flake8 app/frontend/app.py --max-line-length=120
+
+      - name: Lint worker
+        run: flake8 app/worker/worker.py --max-line-length=120
+
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: lint
+    # Only push on pushes to main, not on PRs
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag (short SHA)
+        id: meta
+        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push frontend
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app/frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.meta.outputs.TAG }}
+            ${{ env.FRONTEND_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push worker
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app/worker
+          push: true
+          tags: |
+            ${{ env.WORKER_IMAGE }}:${{ steps.meta.outputs.TAG }}
+            ${{ env.WORKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Update Helm values.yaml with the new image tag so ArgoCD picks it up
+      - name: Update image tags in Helm values
+        if: github.event_name == 'push'
+        run: |
+          TAG="${{ steps.meta.outputs.TAG }}"
+          OWNER="${{ github.repository_owner }}"
+          sed -i "s|repository: ghcr.io/.*/skywatch-frontend|repository: ghcr.io/${OWNER}/skywatch-frontend|" helm/skywatch/values.yaml
+          sed -i "s|repository: ghcr.io/.*/skywatch-worker|repository: ghcr.io/${OWNER}/skywatch-worker|" helm/skywatch/values.yaml
+          sed -i "s|tag: .*  # frontend|tag: ${TAG}  # frontend|" helm/skywatch/values.yaml || true
+          # Use yq for reliable YAML editing
+          pip install yq --quiet
+          yq -i ".frontend.image.tag = \"${TAG}\"" helm/skywatch/values.yaml
+          yq -i ".worker.image.tag = \"${TAG}\"" helm/skywatch/values.yaml
+
+      - name: Commit updated Helm values
+        if: github.event_name == 'push'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/skywatch/values.yaml
+          git diff --cached --quiet || git commit -m "ci: bump image tags to ${GITHUB_SHA::7} [skip ci]"
+          git push
