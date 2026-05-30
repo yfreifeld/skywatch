@@ -42,8 +42,7 @@ rabbitmq:
   metrics:
     enabled: true
     serviceMonitor:
-      enabled: true
-      namespace: monitoring
+      enabled: false   # re-enabled in Week 4 after kube-prometheus-stack is installed
   service:
     type: ClusterIP
   replicaCount: 1
