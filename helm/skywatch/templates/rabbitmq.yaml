@@ -25,7 +25,7 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
-                name: {{ .Release.Name }}-rabbitmq-creds
+                name: {{ .Release.Name }}-rabbitmq
           ports:
             - name: amqp
               containerPort: 5672
